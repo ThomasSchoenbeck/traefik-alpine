@@ -1,0 +1,102 @@
+[entryPoints]
+    [entryPoints.http]
+    address = ":9000"
+    compress = true
+
+[api]
+  entryPoint = "traefik"
+  dashboard = true
+
+  # This will install HTTP handlers to expose Go expvars under /debug/vars and
+  # pprof profiling data under /debug/pprof/. Additionally, the log level will be set to DEBUG.
+  debug = false
+
+# Enable ping
+[ping]
+  entryPoint = "traefik"
+
+# Enable Docker configuration backend
+# [docker]
+# endpoint = "unix:///var/run/docker.sock"
+# # domain = "docker.localhost"
+# watch = true
+
+# Metrics definition
+[metrics]
+  [metrics.prometheus]
+    entryPoint = "traefik"
+
+    # Buckets for latency metrics
+    buckets = [0.1, 0.3, 1.2, 5.0]
+
+
+ [tracing]
+  # Backend name used to send tracing data
+  backend = "jaeger"
+
+  # Service name used in Jaeger backend
+  serviceName = "traefik"
+
+  # Span name limit allows for name truncation in case of very long Frontend/Backend names
+  # This can prevent certain tracing providers to drop traces that exceed their length limits
+  # Default: 0 - no truncation will occur
+  spanNameLimit = 0
+
+
+[tracing.jaeger]
+  # Sampling Server URL is the address of jaeger-agent's HTTP sampling server
+  samplingServerURL = "http://localhost:5778/sampling"
+
+  # Sampling Type specifies the type of the sampler: const, probabilistic, rateLimiting
+  samplingType = "const"
+
+  # Sampling Param is a value passed to the sampler.
+  # Valid values for Param field are:
+  #   - for "const" sampler, 0 or 1 for always false/true respectively
+  #   - for "probabilistic" sampler, a probability between 0 and 1
+  #   - for "rateLimiting" sampler, the number of spans per second
+  samplingParam = 1.0
+
+  # Local Agent Host Port instructs reporter to send spans to jaeger-agent at this address
+  localAgentHostPort = "127.0.0.1:6831"
+
+
+[file]
+
+  [backends]
+    [backends.system]
+      [backends.system.healthcheck]
+      path = "/health"
+      interval = "10s"
+      scheme = "http"
+      port = 8080
+        [backends.system.healthcheck.headers]
+        My-Custom-Header = "cat"
+        My-Header = "dog"
+    [backends.backend1]
+      [backends.backend1.servers.1]
+      url = "http://127.0.0.1:8000"
+      weight = 1
+    [backends.backend2]
+      [backends.backend2.servers.1]
+      url = "http://127.0.0.1:7000"
+      weight = 1
+
+  [frontends]
+    [frontends.frontend1]
+    backend = "backend1"
+    passHostHeader = true
+    passRequestHeader = true
+      [frontends.frontend1.routes.cat_1]
+      rule = "PathPrefix: /cat"
+      [frontends.frontend1.headers.customresponseheaders]
+      X-Answer-Id = "5xlgi34"
+      [frontends.frontend1.headers.customrequestheaders]
+      X-Request-Id = "22342242"
+    [frontends.frontend2]
+    backend = "backend2"
+    passHostHeader = true
+    [frontends.frontend2.routes.dog_1]
+      rule = "Path: /dog"
+      [frontends.frontend2.headers.customReuqestHeaders]
+      host = "something.cm"
